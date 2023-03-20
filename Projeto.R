@@ -1,5 +1,6 @@
 library(dplyr)
 library(sqldf)
+library(ggplot2)
 
 dados = read.csv("dataset.csv")
 View(dados)
@@ -94,3 +95,19 @@ gasto_medio_idade_acima10
 
 gasto_medio_idade_acima10_maior3k = sqldf("Select Idade, avg(CustoInternaçao) as MediaCusto from dados where Idade > 10 group by Idade having MediaCusto > 3000")
 gasto_medio_idade_acima10_maior3k
+
+# Análise estatística com regressão linear
+# Pergunta 1
+# Qual a distribuição da idade dos pacientes que frequentam o hospital?
+
+hist(dados$Idade)
+resumo_idade = summary(as.factor(dados$Idade))
+resumo_idade
+
+ggplot(dados, aes(x = Idade)) +
+  geom_histogram() +
+  labs(title = "Distribuição da Idade") +
+  ylab(label = "")
+
+# Pergunta 2
+# Qual faixa etária tem o maior gasto total no hospital?
