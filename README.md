@@ -18,7 +18,7 @@ O projeto é composto de duas etapas. Primeiramente vamos explorar os dados usan
 
 ### Documentação e Resultados
 
-A documentação do projeto e o código podem ser acessados através do arquivo DocumentacaoeAnaliseResultados.html disponível aqui nesta pasta, ou através do link:
+A documentação do projeto e os resultados das análises podem ser acessados através do link:
 
 https://rpubs.com/CoelhoPedro/1018257
 
