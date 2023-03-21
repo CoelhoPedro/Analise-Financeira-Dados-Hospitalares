@@ -1,0 +1,322 @@
+---
+title: "Documentação e Análise dos Resultados"
+output: html_document
+---
+
+# Introdução
+
+Esta é a documentação oficial do projeto, com as perguntas de negócio, as linhas de código explicadas e comentadas, e as respostas que obtivemos com as nossas análises.
+
+Faremos uma análise financeira de dados hospitalares utilizando linguagem R, SQL e Regressão Linear.
+
+## Fontes de dados
+
+https://www.cms.gov/Research-Statistics-Data-and-Systems/Statistics-Trends-and-Reports/Medicare-Provider-Cost-Report/HospitalCostPUF
+
+https://healthdata.gov/
+
+Os dados são resultados de uma pesquisa nacional de custos hospitalares realizada pela US Agency for Healthcare que consiste em registros hospitalares de amostras de pacientes internados. Os dados são da cidade de Wisconsin e referem-se a pacientes na faixa etária de 0 a 17 anos.
+
+## Objetivos do projeto
+
+Uma rede de hospitais gostaria de compreender as variáveis relacionadas aos gastos com internações hospitalares de pacientes.
+
+O projeto é composto de duas etapas. Primeiramente vamos explorar os dados usando Linguagem SQL através da linguagem R para responder 10 perguntas de negócio. Depois, vamos realizar análise estatística com Linguagem R através do Teste ANOVA e Regressão Linear, e responder 7 perguntas de negócio.
+
+# Código explicado e comentado
+
+Importando os pacotes necessários e lendo os dados do arquivo
+
+```{r, eval=TRUE, message=FALSE}
+library(dplyr)
+library(sqldf)
+library(ggplot2)
+
+dados = read.csv("dataset.csv")
+```
+
+Renomeando as variáveis
+
+```{r}
+nome_colunas = c("Idade", "Sexo", "TempoInternaçao", "Raça", "CustoInternaçao", "GrupoDiagnosticoRefinado")
+names(dados) = nome_colunas
+```
+
+Checando valores missing
+
+```{r}
+sum(is.na(dados))
+dim(dados)
+```
+
+Excluindo a única linha que contem um valor missing
+
+```{r}
+dados = na.omit(dados)
+dim(dados)
+```
+
+Checando os tipos de dados
+
+```{r}
+str(dados)
+```
+
+Transformando as variáveis Sexo e Raça para fator
+
+```{r}
+unique(dados$Sexo)
+dados$Sexo = as.factor(dados$Sexo)
+
+unique(dados$Raça)
+dados$Raça = as.factor(dados$Raça)
+```
+
+## Análise exploratória com linguagem SQL, para responder as perguntas de negócio
+
+### Pergunta 1: Quantas raças estão representadas no dataset?
+
+```{r}
+sqldf("select Raça, count(Raça) as NumeroRaças from dados group by Raça")
+```
+
+Existem 6 raças no dataset
+
+### Pergunta 2: Qual a idade média dos pacientes?
+
+```{r}
+sqldf("select avg(Idade) from dados")
+```
+
+A média de idade é de 5 anos
+
+### Pergunta 3: Qual a moda da idade dos pacientes?
+
+```{r}
+sqldf("select Idade, count(*) as Contagem from dados group by Idade order by Contagem desc limit 1")
+```
+
+A idade que mais aparece é 0, com 306 registros
+
+### Pergunta 4: Qual a variância da coluna idade?
+
+```{r}
+sqldf("select variance(Idade) as Variancia from dados")
+```
+
+A variância da idade é 48,34
+
+### Pergunta 5: Qual o gasto total com internações hospitalares por idade?
+
+```{r}
+sqldf("select Idade, sum(CustoInternaçao) as Custo from dados group by Idade")
+```
+
+### Pergunta 6: Qual idade gera o maior gasto total com internações hospitalares?
+
+```{r}
+sqldf("select Idade, max(Custo) as Custo from (select Idade, sum(CustoInternaçao) as Custo from dados group by Idade)")
+```
+
+A idade que mais gera gasto total é a idade 0
+
+### Pergunta 7: Qual o gasto total com internações hospitalares por gênero?
+
+```{r}
+sqldf("select Sexo, sum(CustoInternaçao) as Custo from dados group by Sexo")
+```
+
+O sexo masculino gera mais gastos do que o feminino
+
+### Pergunta 8: Qual a média de gasto com internações hospitalares por raça do paciente?
+
+```{r}
+sqldf("select Raça, avg(CustoInternaçao) as MediaCusto from dados group by Raça")
+```
+
+### Pergunta 9: Para  pacientes  acima  de  10  anos,  qual  a  média  de  gasto  total  com  internações hospitalares?
+
+```{r}
+sqldf("select Idade, avg(CustoInternaçao) as MediaCusto from dados where Idade > 10 group by Idade")
+```
+
+A média de gasto com internações para pacientes acima de 10 anos é 3.213,66
+
+### Pergunta 10: Considerando o item anterior, qual idade tem média de gastos superior a 3000?
+
+```{r}
+sqldf("Select Idade, avg(CustoInternaçao) as MediaCusto from dados where Idade > 10 group by Idade having MediaCusto > 3000")
+```
+
+## Análise estatística com teste anova e regressão linear
+
+### Pergunta 1: Qual a distribuição da idade dos pacientes que frequentam o hospital?
+
+Podemos checar a distribuição pelo sumário de uma variável do tipo fator, e construir um histograma.
+
+```{r}
+summary(as.factor(dados$Idade))
+
+ggplot(dados, aes(x = Idade)) +
+  geom_histogram() +
+  labs(title = "Distribuição da Idade") +
+  ylab(label = "")
+```
+
+### Pergunta 2: Qual faixa etária tem o maior gasto total no hospital?
+
+Podemos obter a informação que queremos através da funcão aggregate, e constuir um gráfico de barras.
+
+```{r}
+gasto_total_faixa_etaria = aggregate(data = dados,
+                                     CustoInternaçao ~ Idade,
+                                     FUN = sum)
+gasto_total_faixa_etaria
+
+which.max(tapply(gasto_total_faixa_etaria$CustoInternaçao,
+                 gasto_total_faixa_etaria$CustoInternaçao,
+                 FUN = sum))
+
+barplot(tapply(gasto_total_faixa_etaria$CustoInternaçao,
+               gasto_total_faixa_etaria$Idade,
+               FUN = sum))
+```
+
+A faixa etária que possui o maior gasto total é entre 0 e 1 ano
+
+### Pergunta 3: Qual grupo baseado em diagnóstico (Aprdrg) tem o maior gasto total no hospital?
+
+Podemos mais uma vez usar a função aggregate.
+
+```{r}
+gasto_total_grupo = aggregate(data = dados,
+                                     CustoInternaçao ~ GrupoDiagnosticoRefinado,
+                                     FUN = sum)
+
+gasto_total_grupo[which.max(gasto_total_grupo$CustoInternaçao),]
+```
+
+O grupo que possui o maior gasto é o 640
+
+### Pergunta 4: A raça do paciente tem relação com o total gasto em internações no hospital?
+
+Vamos usar o teste ANOVA
+
+Variável dependente: CustoInternaçao
+
+Variável independente: Raça
+
+Hipóteses:
+
+H0 - A variável Raça não afeta a variável CustoInternação
+
+H1 - A variável Raça afeta a variável CustoInternação
+
+```{r}
+teste_anova = aov(CustoInternaçao ~ Raça, data = dados)
+summary(teste_anova)
+```
+
+Conclusão:
+
+Valor-p > 0.05, logo, falhamos em rejeitar a H0.
+
+A raça do paciente não influencia no total gasto com internações no hospital
+
+### Pergunta 5: A combinação de idade e gênero dos pacientes influencia no gasto total em internações no hospital?
+
+Vamos usar o teste ANOVA mais uma vez
+
+Variável dependente: CustoInternaçao
+
+Variáveis independentes: Idade, Sexo
+
+Hipóteses:
+
+H0 - As variáveis Idade e Sexo não afetam a variável CustoInternação
+
+H1 - As variáves Idade e Sexo afetam a variável CustoInternação
+
+```{r}
+teste_anova_2 = aov(CustoInternaçao ~ Idade + Sexo, data = dados)
+summary(teste_anova_2)
+```
+
+Conclusão:
+
+Valor-p < 0.05 para as duas variáveis independentes, logo, rejeitamos a H0.
+
+A raça e o sexo do paciente influenciam significativamente no total gasto com internações no hospital
+
+### Pergunta 6: Como o tempo de permanência é o fator crucial para pacientes internados, desejamos descobrir se o tempo de permanência pode ser previsto a partir de idade, gênero e raça.
+
+Faremos a previsão com um modelo de Regressão Linear
+
+Variável dependente: TempoInternaçao
+
+Variáveis independentes: Idade, Sexo, Raça
+
+H0 - Não há relação linear entre as variáveis dependente e independentes
+
+H1 - Há relação linear entre as variáveis dependente e independentes
+
+```{r}
+modelo = lm(TempoInternaçao ~ Idade + Sexo + Raça, data = dados)
+summary(modelo)
+```
+
+Conclusão:
+
+Valor-p > 0.05 para todas as variáveis independentes, logo, falhamos em rejeitar a H0
+
+O tempo de permanência não pode ser previsto a partir da idade, gênero e raça.
+
+### Pergunta 7
+Quais variáveis têm maior impacto nos custos de internação hospitalar?
+
+Faremos a previsão com um modelo de Regressão Linear novamente
+
+Variável dependente: CustoInternaçao
+
+Variáveis independentes: Idade, Sexo, Raça, TempoInternaçao, GrupoDiagnosticoRefinado
+
+H0 - Não há relação linear entre as variáveis dependente e independentes
+
+H1 - Há relação linear entre as variáveis dependente e independentes
+
+```{r}
+modelo_v2 = lm(CustoInternaçao ~ ., data = dados)
+summary(modelo_v2)
+```
+
+As variáveis que possuem o maior impacto no custo de internação hospitalar são as variáveis Idade, TempoInternaçao e GrupoDiagnosticoRefinado.
+
+Vemos também que a variável Raça não é significativa.
+
+Vamos removê-la e construir um novo modelo.
+
+```{r}
+modelo_v3 = lm(CustoInternaçao ~ Idade + Sexo + TempoInternaçao + GrupoDiagnosticoRefinado, data = dados)
+summary(modelo_v3)
+```
+
+A variável Sexo não possui grande significância estatística. Vamos removê-la e construir um novo modelo.
+
+```{r}
+modelo_v4 = lm(CustoInternaçao ~ Idade + TempoInternaçao + GrupoDiagnosticoRefinado, data = dados)
+summary(modelo_v4)
+```
+
+Agora temos um modelo com todas as variáveis com alta significância. Porém, a variavel GrupoDiagnosticoRefinado possui valor t negativo.
+
+Vamos removê-la e construir um novo modelo.
+
+A remoção da variável GrupoDiagnosticoRefinado aumentou o erro padrão do modelo.
+
+Portanto, vamos descartá-lo e utilizar o melho modelo que encontramos, o modelo_v4.
+
+```{r}
+summary(modelo_v4)
+```
+
+As variáveis que possuem o maior impacto no custo de internação hospitalar são as variáveis Idade, TempoInternaçao e GrupoDiagnosticoRefinado.

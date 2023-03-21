@@ -16,6 +16,12 @@ Uma rede de hospitais gostaria de compreender as variáveis relacionadas aos gas
 
 O projeto é composto de duas etapas. Primeiramente vamos explorar os dados usando Linguagem SQL através da linguagem R para responder 10 perguntas de negócio. Depois, vamos realizar análise estatística com Linguagem R através do Teste ANOVA e Regressão Linear, e responder 7 perguntas de negócio.
 
+### Documentação e Resultados
+
+A documentação do projeto e o código podem ser acessados através do arquivo DocumentacaoeAnaliseResultados.html disponível aqui nesta pasta, ou através do link:
+
+https://rpubs.com/CoelhoPedro/1018257
+
 ### Perguntas de negócio - Análise exploratória
 
 1 - Quantas raças estão representadas no dataset?
